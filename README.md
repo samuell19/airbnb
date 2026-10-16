@@ -1,27 +1,43 @@
-# Airbnb — comparação de estadias
+# Airbnb — Render + Postgres
 
-Lista de seis hospedagens em Natal para 18–19/10/2026, com galerias, detalhes e avaliações de Samuel e Alicia.
+Comparação de seis hospedagens, com galerias, detalhes e votos de Samuel e Alicia.
 
-## Executar localmente
+## Configurar o serviço existente no Render
 
-Requer Node.js 22.13 ou superior.
+1. Crie **New → Postgres**, na mesma região do Web Service. Copie o **Internal Database URL**.
+2. No Web Service → **Environment**, configure:
+   - `DATABASE_URL`: Internal Database URL do Postgres.
+   - `APP_ORIGIN`: URL pública exata do serviço, sem barra final, por exemplo `https://airbnb-xxxx.onrender.com`.
+   - `NODE_VERSION`: `22.16.0`.
+3. Em **Settings → Build & Deploy**:
+   - Root Directory: vazio (package.json está na raiz do repositório).
+   - Build Command: `npm ci && npm run build`
+   - Start Command: `npm start`
+   - Pre-Deploy Command: vazio.
+4. Clique **Manual Deploy → Deploy latest commit**. Se necessário, use **Clear build cache & deploy** para descartar o build antigo da Cloudflare.
+
+O start prepara o banco e importa os seis anúncios sem duplicar ou apagar registros. Os votos ficam no Postgres e sobrevivem a reinícios e deploys. O serviço falha com uma mensagem clara se DATABASE_URL estiver ausente; não usa armazenamento temporário como banco.
+
+`render.yaml` também permite criar um novo serviço e banco via Blueprint. Revise os planos escolhidos no Render antes de criar recursos. O site no Render ficará acessível pela URL pública; os nomes Samuel/Alicia são perfis de votação simples, sem autenticação.
+
+## Local
+
+Requer Node 22.13+ e Postgres. Copie `.env.example` para `.env.local` e preencha as variáveis. Para executar o setup, exporte DATABASE_URL no terminal, depois:
 
 ```sh
-npm install
-npm run build
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_flippant_liz_osborn.sql
+npm ci
+npm run db:setup
 npm run dev
 ```
 
-Abra http://127.0.0.1:5173/. A migração deve ser aplicada apenas uma vez em cada banco local novo.
+Para verificar a versão de produção: `npm run build` e `npm start` (com DATABASE_URL configurada). O servidor usa `0.0.0.0` e a variável `PORT` fornecida pelo Render.
 
-## Dados
+## Dados e código
 
-- `data/stays.json`: anúncios cadastrados, para importar em um banco novo. Não inclui votos.
-- `app/galleries.json`: URLs das fotos de cada anúncio.
-- `drizzle/`: migrações do banco D1.
-- `app/api/stays/route.ts`: cadastro, consulta e votação.
+- `data/stays.json`: snapshot dos seis anúncios publicados, com IDs preservados.
+- `data/votes.json`: snapshot de referência da migração (nenhum voto existia no site publicado na exportação).
+- `app/galleries.json`: galerias dos anúncios.
+- `db/postgres.mjs`: conexão, preparação transacional e seed idempotente.
+- `app/api/stays/route.ts`: API Node/Postgres.
 
-Para importar os anúncios com o servidor local aberto, execute `node scripts/seed-stays.mjs`. O script evita duplicados pelo ID do anúncio.
-
-Os votos e cadastros do site publicado ficam no D1 e não são versionados no Git. Imagens são carregadas das URLs do Airbnb. Acesso e publicação usam a configuração do Sites em `.openai/hosting.json`.
+Arquivos legados da hospedagem Sites/Cloudflare permanecem como referência, mas não são usados por `dev`, `build` ou `start`. A instância Cloudflare já publicada é independente; esta adaptação tem como destino o Render.

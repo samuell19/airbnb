@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nosso refúgio • Outubro a dois",
-  description: "Escolham juntos a próxima estadia.",
+  title: "Airbnbs",
+  description: "Comparar lugares e votar.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -21,3 +21,4 @@ export default function RootLayout({
     </html>
   );
 }
+

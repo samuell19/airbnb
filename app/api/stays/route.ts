@@ -1,10 +1,10 @@
 import {getPool} from '../../../db/postgres.mjs';
+import {isAllowedOrigin} from '../../../lib/request-origin.mjs';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 export async function GET(){try{const db=getPool();const [stays,votes]=await Promise.all([db.query('SELECT * FROM stays ORDER BY id'),db.query('SELECT id,stay_id AS "stayId",person,rating FROM votes')]);return Response.json({stays:stays.rows,votes:votes.rows},{headers:{'Cache-Control':'no-store'}})}catch(e){console.error('Database read failed',e instanceof Error?e.message:'unknown');return Response.json({error:'Não foi possível carregar os lugares.'},{status:503})}}
 export async function POST(req:Request){
- const origin=req.headers.get('origin');const expected=process.env.APP_ORIGIN||new URL(req.url).origin;
- if(!origin||origin!==expected)return Response.json({error:'Origem inválida.'},{status:403});
+ if(!isAllowedOrigin(req))return Response.json({error:'Origem inválida.'},{status:403});
  try{const b=await req.json() as {action?:string;person:number;rating:number;stayId:string;url:string;title:string;image:string;location:string;note:string};const db=getPool();
  if(b.action==='vote'){
  if(![0,1].includes(b.person)||!Number.isInteger(b.rating)||b.rating<1||b.rating>5||typeof b.stayId!=='string')return Response.json({error:'Voto inválido.'},{status:400});

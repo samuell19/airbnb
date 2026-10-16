@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {isAllowedOrigin} from '../lib/request-origin.mjs';
+const req = (origin, site) => new Request('http://localhost:10000/api/stays', {headers:{...(origin?{origin}:{}),...(site?{'sec-fetch-site':site}:{})}});
+assert.equal(isAllowedOrigin(req('https://new.onrender.com','same-origin'),{APP_ORIGIN:'https://old.onrender.com'}),true);
+assert.equal(isAllowedOrigin(req('https://evil.example','cross-site'),{}),false);
+assert.equal(isAllowedOrigin(req('https://other.example','same-site'),{}),false);
+assert.equal(isAllowedOrigin(req(null,'same-origin'),{}),false);
+assert.equal(isAllowedOrigin(req('null','same-origin'),{}),false);
+assert.equal(isAllowedOrigin(req('https://new.onrender.com'),{RENDER_EXTERNAL_URL:'https://new.onrender.com/'}),true);
+assert.equal(isAllowedOrigin(req('https://evil.example'),{APP_ORIGIN:'https://new.onrender.com'}),false);
+assert.equal(isAllowedOrigin(req('https://new.onrender.com'),{APP_ORIGIN:'https://new.onrender.com/'}),true);
+console.log('8 verificações de origem passaram.');
